@@ -190,7 +190,11 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
   private final float[] viewLightDirection = new float[4]; // view x world light direction
 
 
-  String poses ="";
+  String poses ="tx,ty,tz,qx,qy,qz,qw,\n";
+
+  float[] trans, rot;
+
+  Pose p_temp;
 
 
   private final String filename = "Results.txt";
@@ -592,9 +596,19 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
 //        message = "Anchor pose: ";
 //        message += this.startingPoseAnchor.getPose().toString();
 //        message += "\n cam pose: ";
-        String pose = camera.getPose().toString();
 
-        poses += pose + "\n";
+        p_temp = camera.getPose();
+
+        trans = p_temp.getTranslation();
+        rot = p_temp.getRotationQuaternion();
+
+        for (float t: trans){
+          poses += Float.toString(t) + ",";
+        }
+        for (float q: rot){
+          poses += Float.toString(q) + ",";
+        }
+        poses +="\n";
         message = "Writing to file " + Environment.getExternalStorageDirectory().getPath() ;
 //        message = pose ;
         try {
