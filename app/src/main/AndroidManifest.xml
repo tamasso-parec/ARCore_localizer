@@ -19,10 +19,31 @@
     package="com.google.ar.core.examples.localizer">
 
   <uses-permission android:name="android.permission.CAMERA"/>
+
+  <!-- Required only if your app needs to access images or photos
+     that other apps created. -->
+  <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+
+  <!-- Required only if your app needs to access videos
+       that other apps created. -->
+  <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" />
+
+  <!-- Required only if your app needs to access audio files
+       that other apps created. -->
+  <uses-permission android:name="android.permission.READ_MEDIA_AUDIO" />
+
+  <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
+
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+      android:maxSdkVersion="29" />
+
   <!-- Limits app visibility in the Google Play Store to ARCore supported devices
        (https://developers.google.com/ar/devices). -->
   <uses-feature android:name="android.hardware.camera.ar" android:required="true"/>
   <uses-feature android:glEsVersion="0x00020000" android:required="true" />
+  <uses-feature
+      android:name="android.hardware.camera"
+      android:required="false" />
 
   <application
       android:allowBackup="false"

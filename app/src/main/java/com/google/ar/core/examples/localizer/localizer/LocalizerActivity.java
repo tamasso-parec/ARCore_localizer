@@ -19,6 +19,7 @@ package com.google.ar.core.examples.localizer.localizer;
 import com.google.ar.core.Pose;
 import com.google.ar.core.examples.localizer.R;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.media.Image;
@@ -26,6 +27,7 @@ import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.MotionEvent;
@@ -79,8 +81,15 @@ import com.google.ar.core.exceptions.UnavailableArcoreNotInstalledException;
 import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -180,9 +189,45 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
   private final float[] worldLightDirection = {0.0f, 0.0f, 0.0f, 0.0f};
   private final float[] viewLightDirection = new float[4]; // view x world light direction
 
-  private Pose startingPose;
 
-  private Anchor startingPoseAnchor;
+  String poses ="";
+
+
+  private final String filename = "Results.txt";
+
+//  private final File result_file = new File(getApplicationContext().getFilesDir(), filename);
+  private File result_file;
+
+  protected void writeToFile(String data) throws FileNotFoundException {
+
+
+
+    File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+    File locDir = new File(dir+File.separator+"Localizer/");
+    if (! locDir.exists()){
+      locDir.mkdirs();
+    }
+    result_file = new File(locDir, filename);
+
+    try (FileWriter fileWriter = new FileWriter(result_file)) {
+      fileWriter.append(data);
+    } catch (IOException e) {
+      //Handle exception
+      Log.e("Exception", "File write failed: " + e.toString());
+    }
+//    FileOutputStream is = new FileOutputStream(statText);
+//    OutputStreamWriter osw = new OutputStreamWriter(is);
+//    try{
+//      BufferedWriter w = new BufferedWriter(osw);
+//      w.write(data);
+//      w.close();
+//    }
+//    catch (IOException e) {
+//      Log.e("Exception", "File write failed: " + e.toString());
+//    }
+
+
+  }
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -213,6 +258,8 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
             popup.show();
           }
         });
+
+
   }
 
   /** Menu button to launch feature specific settings. */
@@ -273,13 +320,7 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
         // Create the session.
         session = new Session(/* context= */ this);
 
-        //Set initial pose of the camera
-//        Frame frame = session.update();
-//
-//        Camera cam = frame.getCamera();
-//
-//        this.startingPose = cam.getPose();
-//        this.startingPoseAnchor = session.createAnchor(this.startingPose);
+
 
       } catch (UnavailableArcoreNotInstalledException
           | UnavailableUserDeclinedInstallationException e) {
@@ -551,7 +592,16 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
 //        message = "Anchor pose: ";
 //        message += this.startingPoseAnchor.getPose().toString();
 //        message += "\n cam pose: ";
-        message = camera.getPose().toString();
+        String pose = camera.getPose().toString();
+
+        poses += pose + "\n";
+        message = "Writing to file " + Environment.getExternalStorageDirectory().getPath() ;
+//        message = pose ;
+        try {
+          writeToFile(poses);
+        } catch (FileNotFoundException e) {
+          throw new RuntimeException(e);
+        }
       }
     } else {
       message = SEARCHING_PLANE_MESSAGE;
