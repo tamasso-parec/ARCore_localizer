@@ -19,13 +19,13 @@ package com.google.ar.core.examples.localizer.localizer;
 import com.google.ar.core.Pose;
 import com.google.ar.core.examples.localizer.R;
 
-import android.content.Context;
 import android.content.DialogInterface;
 import android.content.res.Resources;
 import android.media.Image;
 import android.opengl.GLES30;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.util.Log;
@@ -82,15 +82,14 @@ import com.google.ar.core.exceptions.UnavailableDeviceNotCompatibleException;
 import com.google.ar.core.exceptions.UnavailableSdkTooOldException;
 import com.google.ar.core.exceptions.UnavailableUserDeclinedInstallationException;
 
-import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStreamWriter;
 import java.nio.ByteBuffer;
+import java.nio.FloatBuffer;
+import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -191,19 +190,65 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
 
 
   String poses ="tx,ty,tz,qx,qy,qz,qw,\n";
+  String points_header="id,x,y,z,conf,\n";
+
 
   float[] trans, rot;
 
   Pose p_temp;
 
 
-  private final String filename = "Results.txt";
+  private final String trajectoryFilename = "Trajectory.txt";
+  private final String pointcloudFilename = "PointCloud";
 
 //  private final File result_file = new File(getApplicationContext().getFilesDir(), filename);
-  private File result_file;
+  private File trajResultFile;
+  private File pointcloudResultFile;
 
-  protected void writeToFile(String data) throws FileNotFoundException {
+  protected void writeTrajectoryToFile(String data) throws FileNotFoundException {
+    File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
+    File locDir = new File(dir+File.separator+"Localizer/");
+    if (! locDir.exists()){
+      locDir.mkdirs();
+    }
+    trajResultFile = new File(locDir, trajectoryFilename);
 
+    try (FileWriter fileWriter = new FileWriter(trajResultFile)) {
+      fileWriter.append(data);
+    } catch (IOException e) {
+      //Handle exception
+      Log.e("Exception", "File write failed: " + e.toString());
+    }
+  }
+
+  /*
+  Very slow
+   */
+  protected void writePointCloudToFile(PointCloud pcs) throws FileNotFoundException {
+
+
+    IntBuffer intBuf = pcs.getIds();
+
+
+
+
+    FloatBuffer ppBuf = pcs.getPoints();
+
+    String time = Long.toString(pcs.getTimestamp());
+
+    String tempPoints = points_header;
+
+    while (intBuf.hasRemaining()){
+      intBuf.position();
+      ppBuf.position();
+
+      tempPoints += intBuf.get() + ",";
+      for (int i=0; i < 4; i++){
+        tempPoints += ppBuf.get() + ",";
+      }
+      tempPoints += "\n";
+
+    }
 
 
     File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS);
@@ -211,26 +256,15 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
     if (! locDir.exists()){
       locDir.mkdirs();
     }
-    result_file = new File(locDir, filename);
 
-    try (FileWriter fileWriter = new FileWriter(result_file)) {
-      fileWriter.append(data);
+    pointcloudResultFile = new File(locDir, pointcloudFilename + time +".txt");
+
+    try (FileWriter fileWriter = new FileWriter(pointcloudResultFile)) {
+      fileWriter.append(tempPoints);
     } catch (IOException e) {
       //Handle exception
       Log.e("Exception", "File write failed: " + e.toString());
     }
-//    FileOutputStream is = new FileOutputStream(statText);
-//    OutputStreamWriter osw = new OutputStreamWriter(is);
-//    try{
-//      BufferedWriter w = new BufferedWriter(osw);
-//      w.write(data);
-//      w.close();
-//    }
-//    catch (IOException e) {
-//      Log.e("Exception", "File write failed: " + e.toString());
-//    }
-
-
   }
 
   @Override
@@ -612,7 +646,7 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
         message = "Writing to file " + Environment.getExternalStorageDirectory().getPath() ;
 //        message = pose ;
         try {
-          writeToFile(poses);
+          writeTrajectoryToFile(poses);
         } catch (FileNotFoundException e) {
           throw new RuntimeException(e);
         }
@@ -653,6 +687,28 @@ public class LocalizerActivity extends AppCompatActivity implements SampleRender
       if (pointCloud.getTimestamp() > lastPointCloudTimestamp) {
         pointCloudVertexBuffer.set(pointCloud.getPoints());
         lastPointCloudTimestamp = pointCloud.getTimestamp();
+
+
+        try {
+          writePointCloudToFile(pointCloud);
+        } catch (FileNotFoundException e) {
+          throw new RuntimeException(e);
+        }
+
+//        Write the pointcloud to its file
+//        AsyncTask.execute(new Runnable() {
+//          @Override
+//          public void run() {
+//            //TODO your background code
+//            try {
+//              writePointCloudToFile(pointCloud);
+//            } catch (FileNotFoundException e) {
+//              throw new RuntimeException(e);
+//            }
+//
+//          }
+//        });
+
       }
       Matrix.multiplyMM(modelViewProjectionMatrix, 0, projectionMatrix, 0, viewMatrix, 0);
       pointCloudShader.setMat4("u_ModelViewProjection", modelViewProjectionMatrix);
